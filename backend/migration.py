@@ -1,35 +1,49 @@
 import csv
-# from app import db, Jamu
 import sqlite3
 
-conn= sqlite3.connect("database.db")
-cursor=conn.cursor()
+conn = sqlite3.connect("database.db")
+cursor = conn.cursor()
 
 with open('data_jamu_274.csv', newline='', encoding='utf-8') as file:
     reader = csv.DictReader(file)
 
     for row in reader:
-        cursor.execute("SELECT id_kategori FROM kategori WHERE nama_kategori=?", (row["KATEGORI"],))
 
-        kategori=cursor.fetchone()
+        # cek kategori
+        cursor.execute(
+            "SELECT id_kategori FROM kategori WHERE nama_kategori=?",
+            (row["KATEGORI"],)
+        )
+
+        kategori = cursor.fetchone()
 
         if kategori is None:
-            cursor.execute("INSERT INTO kategori (nama_kategori) VALUES (?)", (row["KATEGORI"],))
+            cursor.execute(
+                "INSERT INTO kategori (nama_kategori) VALUES (?)",
+                (row["KATEGORI"],)
+            )
             id_kategori = cursor.lastrowid
         else:
             id_kategori = kategori[0]
 
-         # jenis
-        cursor.execute("SELECT id_jenis FROM jenis WHERE nama_jenis=?", (row["JENIS"],))
+        # cek jenis
+        cursor.execute(
+            "SELECT id_jenis FROM jenis WHERE nama_jenis=?",
+            (row["JENIS"],)
+        )
+
         jenis = cursor.fetchone()
 
         if jenis is None:
-            cursor.execute("INSERT INTO jenis (nama_jenis) VALUES (?)", (row["JENIS"],))
+            cursor.execute(
+                "INSERT INTO jenis (nama_jenis) VALUES (?)",
+                (row["JENIS"],)
+            )
             id_jenis = cursor.lastrowid
         else:
             id_jenis = jenis[0]
 
-         # insert jamu
+        # insert jamu
         cursor.execute("""
         INSERT INTO jamu (
             nama_jamu, khasiat, kandungan, aturan_minum, efek_samping,
@@ -46,16 +60,7 @@ with open('data_jamu_274.csv', newline='', encoding='utf-8') as file:
             id_jenis
         ))
 
-        # jamu = Jamu(
-        #     nama=row['nama'],
-        #     manfaat=row['manfaat'],
-        #     bahan=row['bahan']
-        # )
-
-        # db.session.add(jamu)
-
-    # db.session.commit()
 conn.commit()
-conn.close
+conn.close()
 
-print("Data berhasil dimasukkan!")
+print("Data berhasil dimasukkan 🚀")

@@ -14,3 +14,12 @@
 # /
 # with app.app_context():
 #     db.create_all()
+from Flask import flask
+from routes.jamu_routes import jamu_bp
+
+app = flask(__name__)
+app.register_blueprint(jamu_bp)
+
+if __name__ == "main":
+    app.run(debug=True)
+

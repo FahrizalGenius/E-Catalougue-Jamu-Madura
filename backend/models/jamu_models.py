@@ -11,7 +11,7 @@ def get_jamu():
     """
     SELECT jamu.nama_jamu, kategori.nama_kategori
     FROM jamu
-    JOIN Katgori ON Jamu.id_kategori = kategori.id_kategori
+    JOIN Kategori ON Jamu.id_kategori = kategori.id_kategori
     """
     )
     data =cursor.fetchall()

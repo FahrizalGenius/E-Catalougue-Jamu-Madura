@@ -14,11 +14,13 @@
 # /
 # with app.app_context():
 #     db.create_all()
-from Flask import flask
+from flask import Flask
 from routes.jamu_routes import jamu_bp
+from routes import login
+app = Flask(__name__)
 
-app = flask(__name__)
 app.register_blueprint(jamu_bp)
+login(app)
 
 if __name__ == "main":
     app.run(debug=True)

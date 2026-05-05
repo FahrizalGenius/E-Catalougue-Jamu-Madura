@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import backgroundImage from './Backdgorund.png';
+import { loginadmin } from '../../../api/auth_Service';
 
 const Login: React.FC = () => {
   const [isMounted, setIsMounted] = useState(false);
+
+  const [username, setUsername] =useState('');
+  const [password, setPassword] =useState('');
+  const [loading, setLoading] =useState(false);
+  const [pesan, setPesan] = useState({text: '',type: ''})
+
 
   useEffect(() => {
     // Memberikan sedikit delay agar animasi masuk terlihat jelas
@@ -11,6 +18,28 @@ const Login: React.FC = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  const handlelogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setPesan( {text:'',type:''})
+
+    try {
+      const response = await loginadmin(username,password);
+      setPesan({text: response.message, type: 'success'});
+
+      // logika buat manggil dashboard disini ya bang
+      try {
+        console
+      }
+
+
+    } catch (error:any) {
+      setPesan({text: error.message,type:'error'});
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div 
@@ -33,16 +62,20 @@ const Login: React.FC = () => {
           </p>
         </div>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handlelogin}>
           <div className="group relative">
             <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 drop-shadow-sm transition-colors group-focus-within:text-blue-300" htmlFor="email">
               Email
             </label>
             <input
-              id="email"
-              type="email"
+              id="username"
+              type="text"
+              value={username}
+
+              onChange={(e)=> setUsername(e.target.value)}
+
               className="w-full px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:bg-white/20 transition-all duration-300"
-              placeholder="Email"
+              placeholder="username"
               required
             />
           </div>
@@ -54,18 +87,32 @@ const Login: React.FC = () => {
             <input
               id="password"
               type="password"
-              className="w-full px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:bg-white/20 transition-all duration-300"
+               value={password}
+
+              onChange={(e)=> setPassword(e.target.value)}
+              className="w-full 
+              px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:bg-white/20 transition-all duration-300"
               placeholder="Kata Sandi "
               required
             />
           </div>
 
+          {pesan.text && (
+            <div className={`text-center text-sm font-semibold p-2 rounded-lg ${pesan.type === 'error' ? 'bg-red-500/20 text-red-200 border border-red-500/50' : 'bg-green-500/20 text-green-200 border border-green-500/50'}`}>
+              {pesan.text}
+            </div>
+          )}
 
           <button
             type="submit"
-            className="w-full mt-8 py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-lg hover:from-blue-400 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:ring-offset-2 focus:ring-offset-transparent transform hover:-translate-y-1 hover:shadow-blue-500/25 active:translate-y-0 active:scale-95 transition-all duration-300 shadow-xl"
+            disabled={loading}
+            className={`w-full mt-8 py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold text-lg hover:from-blue-400 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:ring-offset-2 focus:ring-offset-transparent transform hover:-translate-y-1 hover:shadow-blue-500/25 active:translate-y-0 active:scale-95 transition-all duration-300 shadow-xl ${loading 
+                ? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-400 hover:to-indigo-500 hover:-translate-y-1 hover:shadow-blue-500/25 active:translate-y-0 active:scale-95'
+              }`}
+            
           >
-            Masuk
+           {loading ? 'Memeriksa...' : 'Masuk'}
           </button>
         </form>
 

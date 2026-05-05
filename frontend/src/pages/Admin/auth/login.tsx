@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import backgroundImage from './Backdgorund.png';
 import { loginadmin } from '../../../api/auth_Service';
+import { useNavigate } from 'react-router-dom'; // Cukup panggil useNavigate saja
 
 const Login: React.FC = () => {
+  // 1. DEKLARASIKAN NAVIGASI DI SINI BANG 👇
+  const navigate = useNavigate();
+
   const [isMounted, setIsMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +38,6 @@ const Login: React.FC = () => {
     return () => clearInterval(interval);
   }, [lockoutTime, failedAttempts]);
 
-  // FUNGSI INI YANG TADI KEHAPUS BANG 👇
   const handlelogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -48,9 +51,12 @@ const Login: React.FC = () => {
       setPesan({ text: response.message, type: 'success' });
       setFailedAttempts(0); // Reset percobaan kalau sukses
 
-      // Alert debug
-      alert("fahri gay");
+      // 2. KASIH TIKET MASUK BIAR NGGAK DITENDANG SATPAM 👇
+      localStorage.setItem('isLoggedIn', 'true');
 
+      // 3. PINDAH HALAMAN (Pakai huruf kecil 'n' dan disamakan dengan rute di App.tsx) 👇
+      navigate('/dashboard');
+      
     } catch (error: any) {
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);

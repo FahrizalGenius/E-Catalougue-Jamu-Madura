@@ -1,2 +1,27 @@
 .~lock.data_jamu_274.xlsx#
 .csv
+*.env# --- FILE ENVIRONMENT (RAHASIA) ---
+.env
+*.env
+.env.*
+
+# --- DATA & DATABASE ---
+*.csv
+*.xlsx
+*.xls
+*.db
+*.sqlite3
+
+# --- FILE EXCEL SEMENTARA (LOCK) ---
+.~lock.*
+
+# --- FOLDER BAWAAN PYTHON / FLASK ---
+__pycache__/
+venv/
+env/
+*.pyc
+
+# --- FOLDER BAWAAN REACT / NODE ---
+node_modules/
+dist/
+build/

@@ -15,13 +15,16 @@
 # with app.app_context():
 #     db.create_all()
 from flask import Flask
-from routes.jamu_routes import jamu_bp
+# from routes.jamu_routes import jamu_bp
+from flask_cors import CORS
 from routes import login
-app = Flask(__name__)
 
-app.register_blueprint(jamu_bp)
+app = Flask(__name__)
+CORS(app)
+
+# app.register_blueprint(jamu_bp)
 login(app)
 
-if __name__ == "main":
+if __name__ == "__main__":
     app.run(debug=True)
 

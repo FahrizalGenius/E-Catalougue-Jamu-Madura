@@ -29,9 +29,7 @@ const Login: React.FC = () => {
       setPesan({text: response.message, type: 'success'});
 
       // logika buat manggil dashboard disini ya bang
-      try {
-        console
-      }
+      alert("fahri gay")
 
 
     } catch (error:any) {

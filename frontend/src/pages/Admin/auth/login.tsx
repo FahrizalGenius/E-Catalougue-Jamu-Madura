@@ -18,7 +18,7 @@ const Login: React.FC = () => {
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
       {/* Overlay Gelap (Opsional, agar form lebih mudah dibaca jika background terlalu terang) */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      {/* <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div> */}
 
       {/* Glassmorphism Card */}
       <div 
@@ -26,7 +26,7 @@ const Login: React.FC = () => {
       >
         <div className="text-center mb-10">
           <h1 className="text-4xl font-extrabold text-white mb-3 drop-shadow-lg tracking-tight">
-            Admin Portal
+            Selamat Datang Di jamu Kita 
           </h1>
           <p className="text-gray-200 text-sm tracking-wide">
             Silakan masuk ke akun Anda
@@ -42,33 +42,24 @@ const Login: React.FC = () => {
               id="email"
               type="email"
               className="w-full px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:bg-white/20 transition-all duration-300"
-              placeholder="admin@example.com"
+              placeholder="Email"
               required
             />
           </div>
 
           <div className="group relative">
             <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 drop-shadow-sm transition-colors group-focus-within:text-blue-300" htmlFor="password">
-              Password
+              Kata sandi
             </label>
             <input
               id="password"
               type="password"
               className="w-full px-5 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 focus:bg-white/20 transition-all duration-300"
-              placeholder="••••••••"
+              placeholder="Kata Sandi "
               required
             />
           </div>
 
-          <div className="flex items-center justify-between text-sm text-gray-200 mt-4">
-            <label className="flex items-center space-x-2 cursor-pointer group">
-              <input type="checkbox" className="w-4 h-4 rounded border-gray-400 bg-white/20 text-blue-500 focus:ring-blue-400 focus:ring-offset-0 transition-colors" />
-              <span className="group-hover:text-white transition-colors">Ingat saya</span>
-            </label>
-            <a href="#" className="hover:text-white transition-colors hover:underline underline-offset-4 decoration-white/50">
-              Lupa password?
-            </a>
-          </div>
 
           <button
             type="submit"

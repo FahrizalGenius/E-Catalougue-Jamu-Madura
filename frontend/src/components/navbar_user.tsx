@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Mendefinisikan tipe data jika diperlukan, namun untuk Hello World cukup sederhana
+
 const App: React.FC = () => {
   return (
     <div style={{ textAlign: 'center', marginTop: '50px' }}>

@@ -2,33 +2,31 @@ import React from 'react';
 
 const NavbarAdmin: React.FC = () => {
   return (
-    <nav className="flex h-16 w-full shadow-sm font-sans">
-      {/* Brand / Sidebar Toggle Area */}
-      <div className="flex items-center justify-between px-6 w-64 bg-[#d47d25] text-white flex-shrink-0">
-        <span className="text-2xl font-serif tracking-wide">JamuKita</span>
-        <button className="p-1 hover:bg-white/20 rounded transition-colors focus:outline-none">
-          {/* Hamburger Icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    <aside className="w-64 h-screen bg-[#F9F6EE] flex flex-col border-r border-[#E5DECD] animate-fade-in-right shrink-0">
+      {/* User Profile Section */}
+      <div className="flex items-center gap-4 px-6 py-8 mt-4">
+        {/* Simple User Icon SVG */}
+        <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center shrink-0 shadow-md transform transition duration-500 hover:rotate-12">
+          <svg className="w-8 h-8 text-[#F9F6EE]" fill="currentColor" viewBox="0 0 24 24">
+             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
           </svg>
-        </button>
+        </div>
+        <div className="flex flex-col">
+          <span className="font-bold text-lg text-gray-900 leading-tight">Nama user</span>
+          <span className="text-[11px] text-gray-500 font-medium">Administrator</span>
+        </div>
       </div>
 
-      {/* Main Navbar Area */}
-      <div className="flex items-center justify-end flex-grow px-6 bg-[#e08e36]">
-        {/* Profile Dropdown Trigger */}
-        <button className="flex items-center space-x-1 p-2 hover:bg-black/5 rounded transition-colors focus:outline-none text-black">
-          {/* Account Circle Icon */}
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 6C13.66 6 15 7.34 15 9C15 10.66 13.66 12 12 12C10.34 12 9 10.66 9 9C9 7.34 10.34 6 12 6ZM12 20.2C9.5 20.2 7.29 18.92 6 16.98C6.03 14.99 10 13.9 12 13.9C13.99 13.9 17.97 14.99 18 16.98C16.71 18.92 14.5 20.2 12 20.2Z" fill="black"/>
+      {/* Navigation */}
+      <div className="px-4 mt-4">
+        <button className="w-full bg-[#E08A30] hover:bg-[#CD7A25] text-black font-bold rounded-xl py-3 px-4 flex items-center gap-3 transition-all duration-300 transform hover:scale-105 hover:shadow-lg shadow-md group">
+          <svg className="w-6 h-6 shrink-0 transition-transform duration-300 group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          {/* Chevron Down */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+          <span className="text-base tracking-wide">Dashboard</span>
         </button>
       </div>
-    </nav>
+    </aside>
   );
 };
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import NavbarAdmin from '../../../components/navbar_admin';
 
-const Dashboard: React.FC = () => {
+export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -86,6 +86,4 @@ const Dashboard: React.FC = () => {
       </main>
     </div>
   );
-};
-
-export default Dashboard;
+}

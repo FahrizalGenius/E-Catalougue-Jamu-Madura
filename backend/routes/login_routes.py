@@ -16,25 +16,21 @@ def login():
     data = request.json
     input_username = data.get('username')
     input_password = data.get('password')
-
-    # 👇 PASANG CCTV DI SINI BANG 👇
-    # Nanti pas klik login di web, coba abang intip terminal/CMD Flask-nya!
-    print("=== CEK DATA LOGIN ===")
-    print(f"User dari React : '{input_username}'")
-    print(f"User dari .env  : '{Admin_user}'")
-    print(f"Pass dari React : '{input_password}'")
-    print(f"Pass dari .env  : '{Admin_password}'")
-    print("======================")
+    # print("=== CEK DATA LOGIN ===")
+    # print(f"User dari React : '{input_username}'")
+    # print(f"User dari .env  : '{Admin_user}'")
+    # print(f"Pass dari React : '{input_password}'")
+    # print(f"Pass dari .env  : '{Admin_password}'")
+    # print("======================")
 
     if input_username == Admin_user and input_password == Admin_password :
 
         new_token = create_access_token(identity=input_username)
 
-        # 👇 PERBAIKAN: Tokennya WAJIB dimasukin ke sini biar dikirim ke React 👇
         return jsonify({
             "message": "Login Admin Berhasil!", 
             "status": "success",
-            "token": new_token # <--- Tadi abang lupa masukin ini
+            "token": new_token # 
         }), 200
     
     return jsonify({"message": "Username atau password salah", "status": "error"}), 401

@@ -59,7 +59,7 @@ const Login: React.FC = () => {
 
       // 3. PINDAH HALAMAN (Kasih jeda 0.5 detik biar alert suksesnya kelihatan)
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/dashboard_4dm13n');
       }, 500);
       
     } catch (error: any) {

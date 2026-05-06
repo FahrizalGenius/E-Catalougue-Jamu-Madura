@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import backgroundImage from './Backdgorund.png';
-import { loginadmin } from '../../../api/auth_Service';
-import { useNavigate } from 'react-router-dom'; // Cukup panggil useNavigate saja
+import { useNavigate } from 'react-router-dom'; 
+import api from '../../../api/axiosConfig';
 
 const Login: React.FC = () => {
-  // 1. DEKLARASIKAN NAVIGASI DI SINI BANG 👇
   const navigate = useNavigate();
-
   const [isMounted, setIsMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [pesan, setPesan] = useState({ text: '', type: '' });
-
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutTime, setLockoutTime] = useState(0);
 
@@ -41,21 +38,29 @@ const Login: React.FC = () => {
   const handlelogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (lockoutTime > 0) return; // Cegah klik kalau lagi dihukum
-
+    if (lockoutTime > 0) return; 
     setLoading(true);
     setPesan({ text: '', type: '' });
 
     try {
-      const response = await loginadmin(username, password);
-      setPesan({ text: response.message, type: 'success' });
+      // 1. NEMBAK API FLASK PAKAI ASISTEN AXIOS
+      const response = await api.post('/4dm13n', {
+        username: username,
+        password: password
+      });
+
+      // 2. TANGKAP TOKEN DARI FLASK DAN SIMPAN DI BRANKAS (Ganti nama kuncinya)
+      const tokenBaru = response.data.token;
+      localStorage.setItem('token_jamu', tokenBaru);
+
+      // Tangkap pesan sukses dari backend
+      setPesan({ text: response.data.message || "Login Sukses!", type: 'success' });
       setFailedAttempts(0); // Reset percobaan kalau sukses
 
-      // 2. KASIH TIKET MASUK BIAR NGGAK DITENDANG SATPAM 👇
-      localStorage.setItem('isLoggedIn', 'true');
-
-      // 3. PINDAH HALAMAN (Pakai huruf kecil 'n' dan disamakan dengan rute di App.tsx) 👇
-      navigate('/dashboard');
+      // 3. PINDAH HALAMAN (Kasih jeda 0.5 detik biar alert suksesnya kelihatan)
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 500);
       
     } catch (error: any) {
       const newAttempts = failedAttempts + 1;
@@ -65,7 +70,9 @@ const Login: React.FC = () => {
         setLockoutTime(30);
         setPesan({ text: `Terlalu banyak percobaan. Coba lagi dalam 30 detik.`, type: 'error' });
       } else {
-        setPesan({ text: `${error.message}. (Sisa percobaan: ${3 - newAttempts})`, type: 'error' });
+        // 4. TANGKAP PESAN ERROR DARI FLASK
+        const errorMessage = error.response?.data?.message || "Username atau password salah";
+        setPesan({ text: `${errorMessage}. (Sisa percobaan: ${3 - newAttempts})`, type: 'error' });
       }
     } finally {
       setLoading(false);

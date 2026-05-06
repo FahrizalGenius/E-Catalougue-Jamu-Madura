@@ -1,21 +1,40 @@
 import os
 from flask import Blueprint, request, jsonify
 from dotenv import load_dotenv
+from flask_jwt_extended import create_access_token
 
 load_dotenv()
 
 auth_bp = Blueprint('auth',__name__)
 
-Admin_user= os.getenv('Admin_Username')
-Admin_password= os.getenv('Admin_Password')
+# Mengambil data dari .env
+Admin_user = os.getenv('Admin_Username')
+Admin_password = os.getenv('Admin_Password')
 
 @auth_bp.route('/4dm13n',methods=['POST'])
 def login():
     data = request.json
-    input_username=data.get('username')
-    input_password=data.get('password')
+    input_username = data.get('username')
+    input_password = data.get('password')
+
+    # 👇 PASANG CCTV DI SINI BANG 👇
+    # Nanti pas klik login di web, coba abang intip terminal/CMD Flask-nya!
+    print("=== CEK DATA LOGIN ===")
+    print(f"User dari React : '{input_username}'")
+    print(f"User dari .env  : '{Admin_user}'")
+    print(f"Pass dari React : '{input_password}'")
+    print(f"Pass dari .env  : '{Admin_password}'")
+    print("======================")
 
     if input_username == Admin_user and input_password == Admin_password :
-        return jsonify({"message": "Login Admin Berhasil!", "status": "success"}), 200
+
+        new_token = create_access_token(identity=input_username)
+
+        # 👇 PERBAIKAN: Tokennya WAJIB dimasukin ke sini biar dikirim ke React 👇
+        return jsonify({
+            "message": "Login Admin Berhasil!", 
+            "status": "success",
+            "token": new_token # <--- Tadi abang lupa masukin ini
+        }), 200
     
     return jsonify({"message": "Username atau password salah", "status": "error"}), 401

@@ -1,30 +1,19 @@
-# from flask import Flask
-# from flask_sqlalchemy import SQLAlchemy
-
-# app = Flask(__name__)
-
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-# db = SQLAlchemy(app)
-
-# class Jamu(db.model):
-#     id=db.Column(db.integer,primary_key=True)
-#     nama=db.Column(db.string(100))
-#     manfaat =db.Column(db.text)
-
-# /
-# with app.app_context():
-#     db.create_all()
 from flask import Flask
-# from routes.jamu_routes import jamu_bp
 from flask_cors import CORS
-from routes import login
+from flask_jwt_extended import JWTManager 
+
+# Import blueprint abang (sesuaikan nama file abang ya)
+from routes.login_routes import auth_bp 
 
 app = Flask(__name__)
 CORS(app)
 
-# app.register_blueprint(jamu_bp)
-login(app)
+app.config['JWT_SECRET_KEY'] = 'rahasia-jamu-madura-123' 
 
-if __name__ == "__main__":
+jwt = JWTManager(app)
+
+# Daftarin rute
+app.register_blueprint(auth_bp, url_prefix='/api')
+
+if __name__ == '__main__':
     app.run(debug=True)
-

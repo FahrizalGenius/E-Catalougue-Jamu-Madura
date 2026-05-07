@@ -89,10 +89,10 @@ const Login: React.FC = () => {
       >
         <div className="text-center mb-10">
           <h1 className="text-4xl font-extrabold text-white mb-3 drop-shadow-lg tracking-tight">
-            Selamat Datang Di Jamu Kita 
+            Selamat Datang Di Jamu kita
           </h1>
           <p className="text-gray-200 text-sm tracking-wide">
-            Silakan masuk ke akun Anda
+            Silakan masuk ke akun Admin
           </p>
         </div>
 

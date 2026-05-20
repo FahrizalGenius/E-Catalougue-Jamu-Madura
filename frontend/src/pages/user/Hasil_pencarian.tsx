@@ -19,32 +19,50 @@ const Recommendation: React.FC = () => {
   // State Input Teks & Penampung Data Hasil Prediksi Machine Learning
   const [searchText, setSearchText] = useState(kataKunciAwal);
   const [dataRekomendasi, setDataRekomendasi] = useState<any[]>([]);
+  const [suggestion, setSuggestion] = useState<{ asli: string, terkoreksi: string, mode: 'showing_corrected' | 'showing_original' } | null>(null);
   const [loading, setLoading] = useState(false);
 
   // 🛰️ FUNGSI HIT API BACKEND FLASK UNTUK MENDAPATKAN REKOMENDASI ML
-  const ambilRekomendasiML = async (queryTeks: string) => {
+  const ambilRekomendasiML = async (queryTeks: string, skipCorrection: boolean = false) => {
     if (!queryTeks.trim()) return;
     
     setLoading(true);
+    if (!skipCorrection) {
+      setSuggestion(null); // Reset suggestion saat mencari baru
+    }
     try {
       const response = await fetch('http://localhost:5000/api/jamu/recommend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ keluhan: queryTeks }),
+        body: JSON.stringify({ 
+          keluhan: queryTeks,
+          skip_correction: skipCorrection
+        }),
       });
       
       const jsonResult = await response.json();
       
       if (jsonResult.status === 'success') {
         setDataRekomendasi(jsonResult.data || []);
+        if (jsonResult.teks_asli && jsonResult.teks_terkoreksi && jsonResult.teks_asli.toLowerCase() !== jsonResult.teks_terkoreksi.toLowerCase()) {
+          setSuggestion({
+            asli: jsonResult.teks_asli,
+            terkoreksi: jsonResult.teks_terkoreksi,
+            mode: skipCorrection ? 'showing_original' : 'showing_corrected'
+          });
+        } else {
+          setSuggestion(null);
+        }
       } else {
         setDataRekomendasi([]);
+        setSuggestion(null);
       }
     } catch (error) {
       console.error("Gagal mengambil data rekomendasi ML:", error);
       setDataRekomendasi([]);
+      setSuggestion(null);
     } finally {
       setLoading(false);
     }
@@ -124,6 +142,67 @@ const Recommendation: React.FC = () => {
             </form>
           </div>
           
+          {/* LOGIKA SUGGESTI TYPO (PREMIUM GOOGLE-LIKE STYLE) */}
+          {suggestion && !loading && (
+            <div className="w-full mb-10 bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-emerald-200/50 shadow-lg animate-[slideDownFade_0.5s_ease-out_forwards] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start md:items-center gap-4">
+                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl flex-shrink-0 shadow-inner">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                
+                <div>
+                  {suggestion.mode === 'showing_corrected' ? (
+                    <>
+                      <p className="text-gray-800 text-[18px] md:text-[20px] font-medium">
+                        Menampilkan hasil untuk:{" "}
+                        <span className="font-bold text-emerald-800 italic px-1">
+                          "{suggestion.terkoreksi}"
+                        </span>
+                      </p>
+                      <p className="text-gray-500 text-[14px] md:text-[15px] mt-1.5 font-medium">
+                        Tetap cari alih-alih:{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchText(suggestion.asli);
+                            ambilRekomendasiML(suggestion.asli, true);
+                          }}
+                          className="text-[#34C759] font-semibold hover:text-emerald-700 underline focus:outline-none transition-all duration-300"
+                        >
+                          "{suggestion.asli}"
+                        </button>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-gray-800 text-[18px] md:text-[20px] font-medium">
+                        Menampilkan hasil untuk:{" "}
+                        <span className="font-bold text-gray-700 italic px-1">
+                          "{suggestion.asli}"
+                        </span>
+                      </p>
+                      <p className="text-emerald-800 text-[15px] md:text-[16px] mt-1.5 font-semibold flex items-center gap-1.5">
+                        <span className="text-gray-500 font-medium">Mungkin maksud Anda:</span>{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchText(suggestion.terkoreksi);
+                            ambilRekomendasiML(suggestion.terkoreksi, false);
+                          }}
+                          className="text-[#34C759] font-bold hover:text-emerald-700 underline focus:outline-none transition-all duration-300 scale-100 hover:scale-105 inline-block"
+                        >
+                          "{suggestion.terkoreksi}"
+                        </button>
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* LOGIKA LOADING SPINNER SAAT MACHINE LEARNING BERHITUNG */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32 w-full col-span-full">

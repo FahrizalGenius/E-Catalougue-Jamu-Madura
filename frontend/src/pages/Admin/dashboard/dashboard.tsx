@@ -11,9 +11,10 @@ export default function Dashboard() {
   const [dataJamu, setDataJamu] = useState<any[]>([]);
 
   // --- STATE FILTER & SEARCH ---
-  const [searchNama, setSearchNama] = useState<string>(""); // 🔥 State baru untuk search nama jamu
+  const [searchNama, setSearchNama] = useState<string>(""); 
   const [filterJenis, setFilterJenis] = useState<string[]>([]);
   const [filterKabupaten, setFilterKabupaten] = useState<string[]>(["sampang"]);
+  const [filterPerizinan, setFilterPerizinan] = useState<string[]>([]);
 
   // --- FUNGSI AMBIL DATA ---
   const ambilDataJamu = async () => {
@@ -69,27 +70,36 @@ export default function Dashboard() {
     );
   };
 
-  // --- MASTER DATA DROPDOWN ---
+  const handleToggleFilterPerizinan = (perizinan: string) => {
+    setFilterPerizinan((prev) =>
+      prev.includes(perizinan) ? prev.filter((item) => item !== perizinan) : [...prev, perizinan]
+    );
+  };
+
+  // --- MASTER DATA DROPDOWN (Dinamis dari Database) ---
   const daftarJenisUnik = Array.from(
     new Set(dataJamu.map((item) => item.nama_jenis).filter(Boolean))
   );
   const daftarKabupatenUnik = Array.from(
     new Set(dataJamu.map((item) => item.nama_kabupaten).filter(Boolean))
   );
+  const daftarPerizinanUnik = Array.from(
+    new Set(dataJamu.map((item) => item.nama_perizinan).filter(Boolean))
+  );
 
-  // --- PROSES PENYARINGAN REAL-TIME MULTIPLE CHOICE + SEARCH NAMA ---
+  // --- PROSES PENYARINGAN REAL-TIME ---
   const dataJamuTersering = dataJamu.filter((item) => {
-    // 1. Cocokkan Search Nama Jamu (Case-Insensitive)
+    // 1. Cocokkan Search Nama Jamu
     const cocokNama = item.nama_jamu 
       ? item.nama_jamu.toLowerCase().includes(searchNama.toLowerCase()) 
       : true;
 
-    // 2. Cocokkan Filter Dropdown Checkbox
+    // 2. Cocokkan Filter Checkbox
     const cocokJenis = filterJenis.length > 0 ? filterJenis.includes(item.nama_jenis) : true;
     const cocokKabupaten = filterKabupaten.length > 0 ? filterKabupaten.includes(item.nama_kabupaten) : true;
+    const cocokPerizinan = filterPerizinan.length > 0 ? filterPerizinan.includes(item.nama_perizinan) : true;
     
-    // Gabungkan semua kondisi penyaringan
-    return cocokNama && cocokJenis && cocokKabupaten;
+    return cocokNama && cocokJenis && cocokKabupaten && cocokPerizinan;
   });
 
   return (
@@ -129,13 +139,13 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* --- SECTION FILTER MULTI-SELECT CHECKBOX & SEARCH --- */}
+          {/* --- SECTION FILTER SIDEBAR --- */}
           <div className="px-4 mt-4 flex flex-col gap-4 overflow-y-auto flex-1 pb-4 custom-sidebar-scroll">
             <div className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider border-b border-[#E5DECD] pb-1">
               Filter Data
             </div>
 
-            {/* 🔥 BARU: INPUT PENCARIAN NAMA JAMU */}
+            {/* INPUT PENCARIAN NAMA JAMU */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold text-gray-700">Cari Jamu</label>
               <div className="relative flex items-center">
@@ -158,10 +168,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Filter Jenis Jamu (Bisa Pilih Banyak) */}
+            {/* Filter Jenis Jamu */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold text-gray-700">Jenis Jamu</label>
-              <div className="max-h-28 overflow-y-auto border border-[#E5DECD] bg-white rounded-lg p-2 flex flex-col gap-1 shadow-inner">
+              <div className="max-h-24 overflow-y-auto border border-[#E5DECD] bg-white rounded-lg p-2 flex flex-col gap-1 shadow-inner">
                 {daftarJenisUnik.map((jenis) => (
                   <label key={jenis} className="flex items-center gap-2 text-xs text-black cursor-pointer py-0.5 hover:bg-gray-50 px-1 rounded">
                     <input
@@ -176,10 +186,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Filter Asal Kabupaten (Bisa Pilih Banyak) */}
+            {/* Filter Asal Kabupaten */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold text-gray-700">Asal (Kabupaten)</label>
-              <div className="max-h-28 overflow-y-auto border border-[#E5DECD] bg-white rounded-lg p-2 flex flex-col gap-1 shadow-inner">
+              <div className="max-h-24 overflow-y-auto border border-[#E5DECD] bg-white rounded-lg p-2 flex flex-col gap-1 shadow-inner">
                 {daftarKabupatenUnik.map((kab) => (
                   <label key={kab} className="flex items-center gap-2 text-xs text-black cursor-pointer py-0.5 hover:bg-gray-50 px-1 rounded">
                     <input
@@ -194,13 +204,32 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Tombol Reset Semua Filter (Termasuk Search Bar) */}
-            {(searchNama !== "" || filterJenis.length > 0 || filterKabupaten.length > 0) && (
+            {/* FILTER STATUS PERIZINAN */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold text-gray-700">Perizinan</label>
+              <div className="max-h-24 overflow-y-auto border border-[#E5DECD] bg-white rounded-lg p-2 flex flex-col gap-1 shadow-inner">
+                {daftarPerizinanUnik.map((izin) => (
+                  <label key={izin} className="flex items-center gap-2 text-xs text-black cursor-pointer py-0.5 hover:bg-gray-50 px-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={filterPerizinan.includes(izin)}
+                      onChange={() => handleToggleFilterPerizinan(izin)}
+                      className="rounded border-gray-300 text-[#D68227] focus:ring-0 w-3.5 h-3.5"
+                    />
+                    <span className="truncate">{izin}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Tombol Reset Semua Filter */}
+            {(searchNama !== "" || filterJenis.length > 0 || filterKabupaten.length > 0 || filterPerizinan.length > 0) && (
               <button
                 onClick={() => {
                   setSearchNama("");
                   setFilterJenis([]);
                   setFilterKabupaten([]);
+                  setFilterPerizinan([]);
                 }}
                 className="text-left text-[11px] text-[#A52A2A] font-bold hover:underline mt-1"
               >
@@ -266,11 +295,15 @@ export default function Dashboard() {
                         )}
                       </div>
                       <div className="flex flex-col flex-1 overflow-hidden">
+                        {/* 🔥 FIX: Tag penutup kurung siku penutup sudah ditambahkan di sini */}
                         <span className="font-bold text-[15px] text-black truncate font-serif leading-tight">
                           {item.nama_jamu}
                         </span>
                         <span className="text-[10px] text-gray-700 italic">
                           {item.nama_jenis || "Tanpa Jenis"} • {item.nama_kabupaten || "Lokal"}
+                        </span>
+                        <span className="text-[9px] mt-0.5 font-bold text-emerald-800 uppercase bg-emerald-100 px-1.5 py-0.5 rounded self-start">
+                          Izin: {item.nama_perizinan || "Tanpa Izin"}
                         </span>
                       </div>
                     </div>

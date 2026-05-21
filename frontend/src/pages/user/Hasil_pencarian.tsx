@@ -249,25 +249,23 @@ const Recommendation: React.FC = () => {
                     )}
                   </div>
                   
-                  {/* Limit Selector (5 atau 10) */}
+                  {/* Limit Selector (Dropdown 5 atau 10) */}
                   <div className="flex items-center gap-3 bg-[#e8dbdf]/60 p-1.5 rounded-xl border border-gray-300/40 w-full md:w-auto justify-between md:justify-start">
                     <span className="text-xs font-bold text-gray-700 px-2">Tampilkan:</span>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setLimit(5)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all duration-300 ${limit === 5 ? 'bg-[#34C759] text-white shadow-sm' : 'text-gray-700 hover:bg-[#e8dbdf]/80'}`}
-                      >
-                        5 Rekomendasi
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLimit(10)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all duration-300 ${limit === 10 ? 'bg-[#34C759] text-white shadow-sm' : 'text-gray-700 hover:bg-[#e8dbdf]/80'}`}
-                      >
-                        10 Rekomendasi
-                      </button>
-                    </div>
+                    <select
+                      value={limit}
+                      onChange={(e) => setLimit(Number(e.target.value))}
+                      className="bg-white/90 text-gray-800 text-xs font-black py-1.5 px-3 pr-8 rounded-lg border border-gray-300/50 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#34C759] focus:border-transparent transition-all duration-300 cursor-pointer appearance-none relative"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E")`,
+                        backgroundPosition: 'right 0.5rem center',
+                        backgroundSize: '1.25em 1.25em',
+                        backgroundRepeat: 'no-repeat'
+                      }}
+                    >
+                      <option value={5}>5 Rekomendasi</option>
+                      <option value={10}>10 Rekomendasi</option>
+                    </select>
                   </div>
                 </div>
               )}

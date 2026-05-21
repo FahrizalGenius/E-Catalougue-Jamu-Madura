@@ -22,6 +22,12 @@ const Recommendation: React.FC = () => {
   const [suggestion, setSuggestion] = useState<{ asli: string, terkoreksi: string, mode: 'showing_corrected' | 'showing_original' } | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Filter limit hasil rekomendasi (5 atau 10, default 5)
+  const [limit, setLimit] = useState<number>(5);
+  // Metadata model NLP
+  const [prediksiLabel, setPrediksiLabel] = useState<string>("");
+  const [confidence, setConfidence] = useState<number | null>(null);
+
   // 🛰️ FUNGSI HIT API BACKEND FLASK UNTUK MENDAPATKAN REKOMENDASI ML
   const ambilRekomendasiML = async (queryTeks: string, skipCorrection: boolean = false) => {
     if (!queryTeks.trim()) return;
@@ -46,6 +52,8 @@ const Recommendation: React.FC = () => {
       
       if (jsonResult.status === 'success') {
         setDataRekomendasi(jsonResult.data || []);
+        setPrediksiLabel(jsonResult.prediksi_label || "");
+        setConfidence(jsonResult.confidence !== undefined ? jsonResult.confidence : null);
         if (jsonResult.teks_asli && jsonResult.teks_terkoreksi && jsonResult.teks_asli.toLowerCase() !== jsonResult.teks_terkoreksi.toLowerCase()) {
           setSuggestion({
             asli: jsonResult.teks_asli,
@@ -57,11 +65,15 @@ const Recommendation: React.FC = () => {
         }
       } else {
         setDataRekomendasi([]);
+        setPrediksiLabel("");
+        setConfidence(null);
         setSuggestion(null);
       }
     } catch (error) {
       console.error("Gagal mengambil data rekomendasi ML:", error);
       setDataRekomendasi([]);
+      setPrediksiLabel("");
+      setConfidence(null);
       setSuggestion(null);
     } finally {
       setLoading(false);
@@ -210,49 +222,109 @@ const Recommendation: React.FC = () => {
               <p className="text-gray-700 font-bold text-lg animate-pulse">Model AI sedang menganalisis ramuan jamu terbaik...</p>
             </div>
           ) : (
-            /* 🔥 GRID KATALOG 5 KOLOM (Menghasilkan formasi pas 5-5 untuk Top 10) */
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-6 justify-items-center justify-center">
-              {dataRekomendasi.length > 0 ? (
-                dataRekomendasi.map((item, idx) => (
-                  <div 
-                    key={item.id_jamu || idx}
-                    onClick={() => handleCardClick(item)}
-                    className="bg-[#eef6ec] w-full max-w-[240px] rounded-[20px] p-4 pb-5 shadow-lg flex flex-col items-center hover:-translate-y-2 hover:shadow-2xl cursor-pointer transition-all duration-300 border border-green-100 animate-[slideUpFade_0.8s_ease-out_forwards]"
-                    style={{ animationDelay: `${idx * 0.05}s` }}
-                  >
-                    {/* Gambar Produk */}
-                    <div className="w-full aspect-[4/5] bg-gradient-to-b from-yellow-100 to-orange-400 rounded-2xl shadow-inner overflow-hidden mb-4 relative flex flex-col items-center justify-center p-2 text-center border-[3px] border-orange-300">
-                       {item.image ? (
-                          <img 
-                            src={`http://localhost:5000/static/uploads/${item.image}`} 
-                            alt={item.nama_jamu} 
-                            className="w-full h-full object-cover rounded-xl"
-                          />
-                       ) : (
-                          <>
-                            <span className="text-red-600 font-black text-[18px] leading-tight mb-1 uppercase px-1">{item.nama_jamu}</span>
-                            <span className="text-red-600 font-black text-[12px] leading-tight mb-2 uppercase">{item.nama_jenis || 'Tradisional'}</span>
-                          </>
-                       )}
-                    </div>
-                    
-                    {/* Detail Informasi Teks Kartu */}
-                    <div className="w-full text-center flex-grow flex flex-col justify-between">
-                       <div>
-                          <h3 className="text-gray-900 font-bold text-[18px] mb-1 truncate w-full px-1 capitalize">{item.nama_jamu}</h3>
-                          <p className="text-gray-600 text-[14px] font-semibold mb-2 uppercase tracking-wide">{item.nama_jenis || "Jamu Madura"}</p>
-                          <span className="inline-block px-3 py-0.5 bg-green-100 text-green-800 text-[12px] font-bold italic rounded-full shadow-sm">{item.nama_kabupaten || "Lokal"}</span>
-                       </div>
+            <>
+              {/* TOOLBAR: ANALISIS NLP & FILTER LIMIT */}
+              {dataRekomendasi.length > 0 && (
+                <div className="mb-10 p-5 bg-white/80 backdrop-blur-md border border-emerald-100 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md animate-[slideDownFade_0.5s_ease-out_forwards]">
+                  <div className="flex items-center gap-3">
+                    {prediksiLabel ? (
+                      <>
+                        <span className="flex h-3 w-3 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        <p className="text-[16px] font-medium text-gray-800">
+                          Kategori Keluhan Terdeteksi: <span className="font-bold text-emerald-800 capitalize">{prediksiLabel.replace('_', ' ')}</span>
+                          {confidence !== null && (
+                            <span className="text-gray-500 text-sm ml-2">
+                              (Tingkat Keyakinan: {(confidence * 100).toFixed(0)}%)
+                            </span>
+                          )}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[16px] font-medium text-gray-800">
+                        Menampilkan rekomendasi jamu berdasarkan keluhan Anda.
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Limit Selector (5 atau 10) */}
+                  <div className="flex items-center gap-3 bg-[#e8dbdf]/60 p-1.5 rounded-xl border border-gray-300/40 w-full md:w-auto justify-between md:justify-start">
+                    <span className="text-xs font-bold text-gray-700 px-2">Tampilkan:</span>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setLimit(5)}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all duration-300 ${limit === 5 ? 'bg-[#34C759] text-white shadow-sm' : 'text-gray-700 hover:bg-[#e8dbdf]/80'}`}
+                      >
+                        5 Rekomendasi
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLimit(10)}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all duration-300 ${limit === 10 ? 'bg-[#34C759] text-white shadow-sm' : 'text-gray-700 hover:bg-[#e8dbdf]/80'}`}
+                      >
+                        10 Rekomendasi
+                      </button>
                     </div>
                   </div>
-                ))
-              ) : (
-                /* TAMPILAN JIKA KELUHAN TIDAK COCOK DENGAN RAMUAN APAPUN */
-                <div className="col-span-full py-28 text-center text-gray-500 font-medium text-xl italic bg-white/60 w-full rounded-2xl border-2 border-dashed border-gray-300 shadow-inner px-6">
-                   Tidak ada ramuan jamu yang cocok dengan keluhan "{searchText || kataKunciAwal}", Bang. Coba masukkan gejala lain.
                 </div>
               )}
-            </div>
+
+              {/* 🔥 GRID KATALOG 5 KOLOM (Dibatasi oleh State limit) */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-6 justify-items-center justify-center">
+                {dataRekomendasi.length > 0 ? (
+                  dataRekomendasi.slice(0, limit).map((item, idx) => (
+                    <div 
+                      key={item.id_jamu || idx}
+                      onClick={() => handleCardClick(item)}
+                      className="bg-[#eef6ec] w-full max-w-[240px] rounded-[20px] p-4 pb-5 shadow-lg flex flex-col items-center hover:-translate-y-2 hover:shadow-2xl cursor-pointer transition-all duration-300 border border-green-100 animate-[slideUpFade_0.8s_ease-out_forwards]"
+                      style={{ animationDelay: `${idx * 0.05}s` }}
+                    >
+                      {/* Gambar Produk */}
+                      <div className="w-full aspect-[4/5] bg-gradient-to-b from-yellow-100 to-orange-400 rounded-2xl shadow-inner overflow-hidden mb-4 relative flex flex-col items-center justify-center p-2 text-center border-[3px] border-orange-300">
+                         {item.image ? (
+                            <img 
+                              src={`http://localhost:5000/static/uploads/${item.image}`} 
+                              alt={item.nama_jamu} 
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                         ) : (
+                            <>
+                              <span className="text-red-600 font-black text-[18px] leading-tight mb-1 uppercase px-1">{item.nama_jamu}</span>
+                              <span className="text-red-600 font-black text-[12px] leading-tight mb-2 uppercase">{item.nama_jenis || 'Tradisional'}</span>
+                            </>
+                         )}
+                      </div>
+                      
+                      {/* Detail Informasi Teks Kartu */}
+                      <div className="w-full text-center flex-grow flex flex-col justify-between">
+                         <div className="flex flex-col h-full justify-between items-center">
+                            <div>
+                               <h3 className="text-gray-900 font-bold text-[18px] mb-1 truncate w-full px-1 capitalize">{item.nama_jamu}</h3>
+                               <p className="text-gray-600 text-[14px] font-semibold mb-2 uppercase tracking-wide">{item.nama_jenis || "Jamu Madura"}</p>
+                            </div>
+                            <div className="flex flex-col items-center gap-1.5 w-full">
+                               <span className="inline-block px-3 py-0.5 bg-green-100 text-green-800 text-[12px] font-bold italic rounded-full shadow-sm">{item.nama_kabupaten || "Lokal"}</span>
+                               {item.relevansi !== undefined && (
+                                  <span className="inline-block px-3 py-0.5 bg-emerald-600 text-white text-[12px] font-black rounded-full shadow-md">
+                                     Skor NLP: {item.relevansi}%
+                                  </span>
+                               )}
+                            </div>
+                         </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  /* TAMPILAN JIKA KELUHAN TIDAK COCOK DENGAN RAMUAN APAPUN */
+                  <div className="col-span-full py-28 text-center text-gray-500 font-medium text-xl italic bg-white/60 w-full rounded-2xl border-2 border-dashed border-gray-300 shadow-inner px-6">
+                     Tidak ada ramuan jamu yang cocok dengan keluhan "{searchText || kataKunciAwal}", Bang. Coba masukkan gejala lain.
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
         </div>

@@ -1,11 +1,13 @@
 import os
+import re
 import joblib  
+import json
 from flask import Blueprint, jsonify, request
 from models.jamu_models import db, Jamu
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from sklearn.base import BaseEstimator, TransformerMixin  
-from sklearn.metrics.pairwise import cosine_similarity  # <-- WAJIB UNTUK HITUNG RANKING VEKTOR
+from sklearn.metrics.pairwise import cosine_similarity  # <-- Dipertahankan untuk kalkulasi matriks NLP Abang
 
 jamu_bp = Blueprint('jamu', __name__)
 
@@ -40,17 +42,18 @@ class TextPreprocessor(BaseEstimator, TransformerMixin):
         tokens = [w for w in tokens if w not in self.stop_words]
         return " ".join(tokens)
 
-# Trik sakti agar unpickling joblib di Flask tidak AttributeError
+# Trik sakti menyuntikkan kelas ke module __main__ Flask agar unpickling lancar
 import __main__
 __main__.TextPreprocessor = TextPreprocessor
 
 
 # ====================================================================
-# 🤖 0B. LOAD MODEL MACHINE LEARNING (Melacak folder nlp4)
+# 🤖 0B. LOAD MODEL MACHINE LEARNING & KAMUS EXTERNAL JSON
 # ====================================================================
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))  
-ROOT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))  
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))  # Folder /backend/routes
+ROOT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))  # Mundur ke root project
 MODEL_PATH = os.path.join(ROOT_DIR, "NLP", "nlp4", "model_pipeline.pkl")
+KAMUS_PATH = os.path.join(BASE_DIR, "..", "kamus_typo.json")
 
 print("\n==============================================")
 print(f"🔬 Melacak Model ML ke: {MODEL_PATH}")
@@ -63,20 +66,44 @@ except Exception as e:
     print(f"⚠️ GAGAL MEMUAT MODEL ML: {e}")
     model_ml = None
 
+try:
+    with open(KAMUS_PATH, 'r') as f:
+        kamus_dict = json.load(f)
+    print("✅ Kamus Typo Berhasil Dimuat dari JSON!")
+except Exception as e:
+    print(f"⚠️ GAGAL MEMUAT KAMUS TYPO: {e}")
+    kamus_dict = {}
+
 
 # ====================================================================
-# 🛠️ 0C. FUNGSI ANTI-TYPO (Kamus Pembersihan Kata Masukan User)
+# 🛠️ 0C. FUNGSI ANTI-TYPO (Mendukung Casing & Tanda Baca via JSON)
 # ====================================================================
 def typo_correction(text):
-    kamus_typo = {
-        "sya": "saya", "pegel": "pegal", "bdan": "badan", "capek": "capai",
-        "bnyak": "banyak", "utk": "untuk", "dgn": "dengan", "yg": "yang",
-        "smbuh": "sembuh", "skit": "sakit", "kpl": "kepala", "lsh": "lesu",
-        "perot": "perut", "kmbug": "kembung", "niri": "nyeri", "lunu": "linu"
-    }
-    words = str(text).lower().split()
-    corrected_words = [kamus_typo.get(w, w) for w in words]
-    return " ".join(corrected_words)
+    if not kamus_dict:
+        return text
+    tokens = text.split()
+    corrected_tokens = []
+    
+    for token in tokens:
+        # Regex memisahkan tanda baca di depan/belakang kata
+        match = re.match(r'^([^\w]*)([\w\-\']+)([^\w]*)$', token)
+        if match:
+            prefix, word, suffix = match.groups()
+            word_lower = word.lower()
+            if word_lower in kamus_dict:
+                corrected_word = kamus_dict[word_lower]
+                # Menjaga Title Case atau UPPERCASE asal
+                if word.istitle():
+                    corrected_word = corrected_word.title()
+                elif word.isupper():
+                    corrected_word = corrected_word.upper()
+                corrected_tokens.append(f"{prefix}{corrected_word}{suffix}")
+            else:
+                corrected_tokens.append(token)
+        else:
+            corrected_tokens.append(token)
+            
+    return " ".join(corrected_tokens)
 
 
 # ====================================================================
@@ -88,16 +115,21 @@ def get_all_jamu():
     try:
         data_jamu = Jamu.query.all()
         hasil_json = [item.to_dict() for item in data_jamu] 
-        return jsonify({"status": "success", "message": "Seluruh data Jamu berhasil diambil", "data": hasil_json}), 200
+
+        return jsonify({
+            "status": "success",
+            "message": "Seluruh data Jamu berhasil diambil",
+            "data": hasil_json
+        }), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # ====================================================================
-# 🎯 2. GET SINGLE JAMU BY ID + SARAN TERKAIT (COSINE SIMILARITY)
+# 🎯 2. GET SINGLE JAMU BY ID + REKOMENDASI TERKAIT (COSINE SIMILARITY)
 # ====================================================================
 @jamu_bp.route('/jamu/<int:id_jamu>', methods=['GET'])
-# @jwt_required()  # 🔥 Lepas untuk publik agar tidak error 401
+# @jwt_required()  # 🔥 Tetap dicopot agar bisa diakses oleh Publik (User Umum) tanpa error 401
 def get_jamu_by_id(id_jamu):
     try:
         target = Jamu.query.get(id_jamu)
@@ -108,27 +140,27 @@ def get_jamu_by_id(id_jamu):
         all_jamu = Jamu.query.all()
         saran_jamu_lainnya = []
         
-        # Hitung similarity jika model siap dan data pembanding tersedia
+        # Jalankan mesin kalkulasi kemiripan khasiat menggunakan model TF-IDF bawaan pkl Abang
         if model_ml is not None and len(all_jamu) > 1:
             try:
                 transformer_prep = model_ml.named_steps['prep']
                 transformer_tfidf = model_ml.named_steps['tfidf']
 
-                # Ekstrak vektor jamu aktif saat ini
+                # Hitung matriks khasiat jamu utama
                 khasiat_utama = str(target.khasiat or "")
                 query_clean = transformer_prep.transform([khasiat_utama])
                 matrix_query = transformer_tfidf.transform(query_clean)
 
-                # Ekstrak vektor seluruh dataset di DB
+                # Hitung matriks khasiat pembanding dari seluruh baris SQLite
                 khasiat_semua = [str(item.khasiat or "") for item in all_jamu]
                 dataset_clean = transformer_prep.transform(khasiat_semua)
                 matrix_dataset = transformer_tfidf.transform(dataset_clean)
 
-                # Hitung matematika Cosine Similarity
+                # Dapatkan skor linear Cosine Similarity
                 skor_similarity = cosine_similarity(matrix_query, matrix_dataset).flatten()
 
                 for idx, item in enumerate(all_jamu):
-                    # Paksa konversi ke integer murni biar aman dari bug tipe data
+                    # Proteksi: paksa ke integer agar aman dari bug beda tipe data penampung
                     if int(item.id_jamu or 0) == int(target.id_jamu or 0):
                         continue
                         
@@ -136,9 +168,9 @@ def get_jamu_by_id(id_jamu):
                     item_dict['skor_matching'] = float(skor_similarity[idx])
                     saran_jamu_lainnya.append(item_dict)
 
-                # Sortir dari yang paling mirip khasiatnya
+                # Urutkan dari produk dengan kesamaan khasiat tertinggi
                 saran_jamu_lainnya.sort(key=lambda x: x['skor_matching'], reverse=True)
-                saran_jamu_lainnya = saran_jamu_lainnya[:5]  # Ambil Top 5
+                saran_jamu_lainnya = saran_jamu_lainnya[:5]  # Batasi ambil Top 5 saja
                 
             except Exception as nlp_err:
                 print(f"⚠️ GAGAL MENGHITUNG COSINE SIMILARITY DI DETAIL: {nlp_err}")
@@ -170,8 +202,10 @@ def tambah_jamu():
             file = request.files['image']
             if file and file.filename != '':
                 filename = secure_filename(file.filename)
+                
                 if not os.path.exists(UPLOAD_FOLDER):
                     os.makedirs(UPLOAD_FOLDER)
+                    
                 file.save(os.path.join(UPLOAD_FOLDER, filename))
                 nama_file_gambar = filename
 
@@ -182,6 +216,7 @@ def tambah_jamu():
             aturan_minum=request.form.get('aturan_minum'),
             efek_samping=request.form.get('efek_samping'),
             image=nama_file_gambar,
+            
             id_jenis=request.form.get('id_jenis'),
             id_produsen=request.form.get('id_produsen'),
             id_lokasi_produksi=request.form.get('id_lokasi_produksi'),
@@ -189,9 +224,14 @@ def tambah_jamu():
             id_perizinan=request.form.get('id_perizinan'),
             id_lokasi_pemasaran=request.form.get('id_lokasi_pemasaran')
         )
+
         db.session.add(jamu_baru)
         db.session.commit()
-        return jsonify({"status": "success", "message": f"Jamu {jamu_baru.nama_jamu} berhasil didaftarkan!"}), 201
+
+        return jsonify({
+            "status": "success",
+            "message": f"Jamu {jamu_baru.nama_jamu} berhasil didaftarkan!"
+        }), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -228,6 +268,7 @@ def edit_jamu(id_edit):
                     path_gambar_lama = os.path.join(UPLOAD_FOLDER, target.image)
                     if os.path.exists(path_gambar_lama):
                         os.remove(path_gambar_lama)
+
                 filename = secure_filename(file.filename)
                 file.save(os.path.join(UPLOAD_FOLDER, filename))
                 target.image = filename 
@@ -271,7 +312,12 @@ def get_public_jamu():
     try:
         data_jamu = Jamu.query.all()
         hasil_json = [item.to_dict() for item in data_jamu] 
-        return jsonify({"status": "success", "message": "Data katalog jamu publik berhasil diambil", "data": hasil_json}), 200
+
+        return jsonify({
+            "status": "success",
+            "message": "Data katalog jamu publik berhasil diambil",
+            "data": hasil_json
+        }), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -285,6 +331,11 @@ def get_public_filters():
         all_jamu = Jamu.query.all()
         all_jamu_dict = [item.to_dict() for item in all_jamu]
         
+        if all_jamu_dict:
+            print("\n==================================================================")
+            print("🔬 ISI DATA JAMU PERTAMA:", all_jamu_dict[0])
+            print("==================================================================\n")
+        
         jenis_unik = sorted(list(set([item.get('nama_jenis') for item in all_jamu_dict if item.get('nama_jenis')])))
         kabupaten_unik = sorted(list(set([item.get('nama_kabupaten') for item in all_jamu_dict if item.get('nama_kabupaten')])))
         perizinan_unik = sorted(list(set([item.get('nama_perizinan') for item in all_jamu_dict if item.get('nama_perizinan')])))
@@ -292,7 +343,11 @@ def get_public_filters():
         return jsonify({
             "status": "success",
             "message": "Data pilihan filter berhasil diekstrak",
-            "data": {"jenis": jenis_unik, "kabupaten": kabupaten_unik, "perizinan": perizinan_unik}
+            "data": {
+                "jenis": jenis_unik,
+                "kabupaten": kabupaten_unik,
+                "perizinan": perizinan_unik
+            }
         }), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -312,12 +367,16 @@ def dapatkan_rekomendasi_ml():
     try:
         data = request.get_json(silent=True) or {}
         teks_input = data.get('keluhan', '')
+        skip_correction = data.get('skip_correction', False)
 
         if not teks_input or not teks_input.strip():
             return jsonify({"status": "error", "message": "Teks keluhan tidak boleh kosong!"}), 400
 
-        # 🧠 A. Koreksi Typo Keluhan
-        teks_terkoreksi = typo_correction(teks_input)
+        # 🧠 1. Jalankan Koreksi Kata Typo bawaan model
+        teks_terkoreksi_calculated = typo_correction(teks_input)
+        teks_terkoreksi = teks_input if skip_correction else teks_terkoreksi_calculated
+        
+        # Dapatkan prediksi payung kategori Naive Bayes
         label_prediksi = model_ml.predict([teks_terkoreksi])[0]
         probabilitas = model_ml.predict_proba([teks_terkoreksi]).max()
 
@@ -328,43 +387,51 @@ def dapatkan_rekomendasi_ml():
         print(f"Confidence Score: {probabilitas:.4f}")
         print("==========================================================\n")
 
-        # 🔍 B. Ambil Seluruh Baris Data Jamu dari SQLite
+        # 🔍 2. Ambil data jamu lengkap dari SQLite untuk perangkingan matematika
         semua_jamu = Jamu.query.all()
-        if not semua_jamu:
-            return jsonify({"status": "success", "data": []}), 200
-
-        # C. Ekstrak Komponen Pembantu Transformer Dari Objek Pipeline
-        transformer_prep = model_ml.named_steps['prep']
-        transformer_tfidf = model_ml.named_steps['tfidf']
-
-        # 📊 D. Hitung Vektor TF-IDF Baris Khasiat SQLite & Input Keluhan User
-        khasiat_list = [str(item.khasiat or "") for item in semua_jamu]
-        dataset_clean = transformer_prep.transform(khasiat_list)
-        matrix_tfidf_dataset = transformer_tfidf.transform(dataset_clean)
-
-        query_clean = transformer_prep.transform([teks_terkoreksi])
-        matrix_tfidf_query = transformer_tfidf.transform(query_clean)
-
-        # ⚖️ E. Hitung Nilai Keterdekatan Vektor Cosine Similarity
-        skor_similarity = cosine_similarity(matrix_tfidf_query, matrix_tfidf_dataset).flatten()
-
-        # 🏆 F. Bundling Data & Slicing Ambil Top 10 Terbaik
-        hasil_json = []
-        for idx, item in enumerate(semua_jamu):
-            item_dict = item.to_dict()
-            item_dict['skor_matching'] = float(skor_similarity[idx])
-            hasil_json.append(item_dict)
-
-        # Sortir secara descending berdasarkan tingkat kemiripan teks
-        hasil_json.sort(key=lambda x: x['skor_matching'], reverse=True)
-        top_10_rekomendasi = hasil_json[:10]
+        hasil_sementara = []
+        
+        if semua_jamu:
+            prep_transformer = model_ml.named_steps['prep']
+            tfidf_vectorizer = model_ml.named_steps['tfidf']
+            
+            # 1. Transformasi keluhan input user menggunakan pipeline model nlp
+            query_clean = prep_transformer.transform([teks_terkoreksi])
+            query_vector = tfidf_vectorizer.transform(query_clean)
+            
+            # 2. Gabungkan nama_jamu dan khasiat untuk pencarian yang lebih optimal
+            jamu_texts = [f"{item.nama_jamu or ''} {item.khasiat or ''}" for item in semua_jamu]
+            jamu_clean = prep_transformer.transform(jamu_texts)
+            jamu_vectors = tfidf_vectorizer.transform(jamu_clean)
+            
+            # 3. Hitung cosine similarity antara keluhan dan semua jamu
+            similarities = cosine_similarity(query_vector, jamu_vectors)[0]
+            
+            for idx, item in enumerate(semua_jamu):
+                skor_persen = round(float(similarities[idx]) * 100, 1)
+                
+                # Masukkan hanya jamu dengan tingkat kecocokan > 0%
+                if skor_persen > 0:
+                    item_dict = item.to_dict()
+                    item_dict['relevansi'] = skor_persen
+                    # Samakan key 'skor_matching' agar frontend React tidak pecah saat rendering data
+                    item_dict['skor_matching'] = float(similarities[idx])
+                    hasil_sementara.append(item_dict)
+                    
+        # Urutkan berdasarkan skor tertinggi ke terendah
+        hasil_sementara = sorted(hasil_sementara, key=lambda x: x['relevansi'], reverse=True)
+        
+        # Potong array untuk mengambil Top 10 terbaik
+        hasil_json = hasil_sementara[:10]
 
         return jsonify({
             "status": "success",
             "message": "Model AI berhasil meramu rekomendasi jamu",
             "prediksi_label": str(label_prediksi),
             "confidence": float(probabilitas),
-            "data": top_10_rekomendasi
+            "teks_asli": teks_input,
+            "teks_terkoreksi": teks_terkoreksi_calculated,
+            "data": hasil_json
         }), 200
 
     except Exception as e:
